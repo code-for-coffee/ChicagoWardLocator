@@ -7,7 +7,10 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.location.Location;
 
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -15,24 +18,44 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, OnLocationDetectionListener {
 
     private GoogleMap mMap;
     private Location location;
+    private GoogleApiClient mGoogleApiClient;
     protected LocationManager locationManager;
     protected LocationListener locationListener;
     protected Context context;
     protected Double latitude, longitude;
+
+    @Override
+    public void onLocationDetected(Location mLocation) {
+        //Your new Location is received here
+        location = mLocation;
+    }
 
     private void updateLatLong(Double lat, Double lon) {
         this.latitude = lat;
         this.longitude = lon;
     }
 
+    protected void createLocationRequest() {
+        LocationRequest mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(10000);
+        mLocationRequest.setFastestInterval(5000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+    }
+
+    public void onConnected(Bundle connectionHint) {
+
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+        createLocationRequest();
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -45,10 +68,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Define a listener that responds to location updates
         locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
-                Double lat = location.getLatitude(),
-                       lon = location.getLongitude();
-                updateLatLong(lon, lat);
-                updateMapMarkerAndLocation();
+                if (location != null) {
+                    Double lat = location.getLatitude(),
+                            lon = location.getLongitude();
+                    updateLatLong(lat, lon);
+                    updateMapMarkerAndLocation();
+                }
             }
             public void onStatusChanged(String provider, int status, Bundle extras) {}
             public void onProviderEnabled(String provider) {}
@@ -60,7 +85,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private void updateMapMarkerAndLocation() {
         LatLng currentLocation = new LatLng(this.longitude,this.latitude);
         mMap.addMarker(new MarkerOptions().position(currentLocation).title("Your location"));
-        mMap.moveCamera(CameraUpdateFactory.zoomTo(15));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLocation));
     }
 
@@ -73,15 +97,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         criteria.setCostAllowed(true);
         criteria.setPowerRequirement(Criteria.POWER_LOW);
 
-
         String bestProvider = locationManager.getBestProvider(criteria, true);
-
-        //Location networkLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        location = locationManager.getLastKnownLocation(bestProvider);
-        Double lat = location.getLatitude(),
-                lon = location.getLongitude();
-        updateLatLong(lon, lat);
-        updateMapMarkerAndLocation();
+        locationManager.requestLocationUpdates(bestProvider, 5000, 0, locationListener);
     }
 
     /**
@@ -96,10 +113,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        mMap.moveCamera(CameraUpdateFactory.zoomTo(15));
         // Register the listener with the Location Manager to receive location updates
         try {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1, 0, locationListener);
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1, 0, locationListener);
             updateLocation();
         } catch (SecurityException securityExc) {
             // let user know there is an error & log it
