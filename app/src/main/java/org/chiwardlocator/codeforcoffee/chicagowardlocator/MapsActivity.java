@@ -9,6 +9,7 @@ import android.location.LocationManager;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.location.Location;
+import android.util.Log;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
@@ -32,35 +33,79 @@ import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListe
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
-    private GoogleMap mMap;
-    private Location location;
-    private LocationRequest mLocationRequest;
-    private GoogleApiClient mGoogleApiClient;
-    protected LocationManager locationManager;
-    protected LocationListener locationListener;
-    protected Context context;
-    protected Double latitude, longitude;
+    private GoogleMap mMap;                     // google map object
+    private Location location;                  // location object
+    private LocationRequest mLocationRequest;   // locationrequest object
+    private GoogleApiClient mGoogleApiClient;   // googleapi client object
+    protected Double latitude, longitude;       // doubles for lat/long
     final Double CHICAGO_LAT = 41.8500300;
     final Double CHICAGO_LONG = -87.6500500;
 
     protected static final int REQUEST_CHECK_SETTINGS = 0x1;
+    private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
+    public static final String TAG = MapsActivity.class.getSimpleName();
 
+    // on Connected to Location Services
     public void onConnected(Bundle connectionHint) throws SecurityException {
+        Log.i(TAG, "Location Services connected!");
         location = LocationServices.FusedLocationApi.getLastLocation(
                 mGoogleApiClient);
         if (location != null) {
-            Double lat = location.getLatitude(),
-                    lon = location.getLongitude();
-            updateLatLong(lat, lon);
-            updateMapMarkerAndLocation();
+            handleLocationChange(location);
         }
     }
 
-    protected void startLocationUpdates() {
+    // what to do is our location changes
+    private void handleLocationChange(Location location) {
+        Log.d(TAG, location.toString());
+        Double lat = location.getLatitude(),
+                lon = location.getLongitude();
+        updateLatLong(lat, lon);
+        updateMapMarkerAndLocation();
+    }
+
+    // when our activity is resumed...
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mGoogleApiClient.connect(); // use dat memory
+    }
+
+    // when our activity is paused...
+    @Override
+    protected void onPause(){
+        super.onPause();
+        if (mGoogleApiClient.isConnected()) {
+            mGoogleApiClient.disconnect(); // save dat memory
+        }
+    }
+
+    // when our Location service is suspended
+    @Override
+    public void onConnectionSuspended(int i) {
+        Log.i(TAG, "Location Services suspended! You should reconnect.");
+    }
+
+    // when our connection fails...
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        if (connectionResult.hasResolution()) {
+            try {
+                // Start an Activity that tries to resolve the error
+                connectionResult.startResolutionForResult(this, CONNECTION_FAILURE_RESOLUTION_REQUEST);
+            } catch (IntentSender.SendIntentException e) {
+                e.printStackTrace();
+            }
+        } else {
+            Log.i(TAG, "Location services connection failed with code " + connectionResult.getErrorCode());
+        }
+    }
+
+    protected void startLocationUpdates() throws SecurityException {
         // Define a listener that responds to location updates
-        //LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, locationListener);
+        LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
     }
 
     private void updateLatLong(Double lat, Double lon) {
@@ -75,30 +120,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
-    @Override
-    public void onLocationChanged(Location location) {
-        if (location != null) {
-            Double lat = location.getLatitude(),
-                    lon = location.getLongitude();
-            updateLatLong(lat, lon);
-            updateMapMarkerAndLocation();
-        }
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-
-    }
 
     protected void onStart() {
         mGoogleApiClient.connect();
@@ -116,49 +137,50 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(R.layout.activity_maps);
 
         // Create an instance of GoogleAPIClient.
-        if (mGoogleApiClient == null) {
-            mGoogleApiClient = new GoogleApiClient.Builder(this)
-                    .addApi(LocationServices.API)
-                    .build();
-        }
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
 
         createLocationRequest();
 
-        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
-                .addLocationRequest(mLocationRequest);
-
-        PendingResult<LocationSettingsResult> result =
-                LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient,
-                        builder.build());
-
-        result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
-            @Override
-            public void onResult(LocationSettingsResult res) {
-                final Status STATUS = res.getStatus();
-                //final LocationSettingsStates LOCATION_SETTING_STATES = res.getLocationSettingsStates();
-                switch (STATUS.getStatusCode()) {
-                    case LocationSettingsStatusCodes.SUCCESS:
-                        // all is well... we can make requests here
-                        break;
-                    case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
-                        // Location settings are not satisfied, but this can be fixed
-                        // by showing the user a dialog.
-                        try {
-                            // Show the dialog by calling startResolutionForResult(),
-                            // and check the result in onActivityResult().
-                            STATUS.startResolutionForResult(
-                                    MapsActivity.this,
-                                    REQUEST_CHECK_SETTINGS);
-                        } catch (IntentSender.SendIntentException e) {
-                            // Ignore the error.
-                        }
-                        break;
-                    case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
-                        // settings unavailable and cannot be changed :(
-                        break;
-                }
-            }
-        });
+//        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
+//                .addLocationRequest(mLocationRequest);
+//
+//        PendingResult<LocationSettingsResult> result =
+//                LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient,
+//                        builder.build());
+//
+//        result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
+//            @Override
+//            public void onResult(LocationSettingsResult res) {
+//                final Status STATUS = res.getStatus();
+//                //final LocationSettingsStates LOCATION_SETTING_STATES = res.getLocationSettingsStates();
+//                switch (STATUS.getStatusCode()) {
+//                    case LocationSettingsStatusCodes.SUCCESS:
+//                        // all is well... we can make requests here
+//                        startLocationUpdates();
+//                        break;
+//                    case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
+//                        // Location settings are not satisfied, but this can be fixed
+//                        // by showing the user a dialog.
+//                        try {
+//                            // Show the dialog by calling startResolutionForResult(),
+//                            // and check the result in onActivityResult().
+//                            STATUS.startResolutionForResult(
+//                                    MapsActivity.this,
+//                                    REQUEST_CHECK_SETTINGS);
+//                        } catch (IntentSender.SendIntentException e) {
+//                            // Ignore the error.
+//                        }
+//                        break;
+//                    case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+//                        // settings unavailable and cannot be changed :(
+//                        break;
+//                }
+//            }
+//        });
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -200,5 +222,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.moveCamera(CameraUpdateFactory.zoomTo(15));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(CHICAGO_LAT, CHICAGO_LONG)));
     }
+
 
 }
