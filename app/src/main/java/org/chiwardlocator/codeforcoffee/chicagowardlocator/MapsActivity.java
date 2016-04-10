@@ -2,13 +2,16 @@ package org.chiwardlocator.codeforcoffee.chicagowardlocator;
 
 import android.content.Context;
 import android.content.IntentSender;
+import android.content.pm.PackageManager;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.location.Location;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -33,7 +36,9 @@ import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListe
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+import java.util.jar.Manifest;
+
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
 
     private GoogleMap mMap;                     // google map object
     private Location location;                  // location object
@@ -43,19 +48,36 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     final Double CHICAGO_LAT = 41.8500300;
     final Double CHICAGO_LONG = -87.6500500;
 
+    // sdk 23+ permissions (support for Android 6.0+ request
+    int coarsePermissionCheck = ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION);
+    int finePermissionCheck = ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION);
+
     protected static final int REQUEST_CHECK_SETTINGS = 0x1;
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
     public static final String TAG = MapsActivity.class.getSimpleName();
 
     // on Connected to Location Services
+    @Override
     public void onConnected(Bundle connectionHint) throws SecurityException {
+        // check permissions at runtime (required for sdk 23+
+        if (coarsePermissionCheck != PackageManager.PERMISSION_GRANTED && finePermissionCheck != PackageManager.PERMISSION_GRANTED) {
+            // show explanation
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)) {
+                // todo: show reason why to user why we need to access data
+            }
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.ACCESS_FINE_LOCATION)) {
+                // todo: show reason why to user why we need to access data
+            }
+        }
         Log.i(TAG, "Location Services connected!");
-        location = LocationServices.FusedLocationApi.getLastLocation(
-                mGoogleApiClient);
-        if (location != null) {
+        location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        if (location == null) {
+            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+        } else {
             handleLocationChange(location);
         }
     }
+
 
     // what to do is our location changes
     private void handleLocationChange(Location location) {
@@ -78,6 +100,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onPause(){
         super.onPause();
         if (mGoogleApiClient.isConnected()) {
+            LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
             mGoogleApiClient.disconnect(); // save dat memory
         }
     }
@@ -113,11 +136,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         this.longitude = lon;
     }
 
+    @Override
+    public void onLocationChanged(Location location) {
+        handleLocationChange(location);
+    }
+
+
+
+
     protected void createLocationRequest() {
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(10000);
-        mLocationRequest.setFastestInterval(5000);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        mLocationRequest.setInterval(10000);       // milliseconds
+        mLocationRequest.setFastestInterval(5000); // milliseconds
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY); // IMPORTANT
     }
 
 
