@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.location.Location;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
@@ -52,7 +53,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     int coarsePermissionCheck = ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION);
     int finePermissionCheck = ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION);
 
-    protected static final int REQUEST_CHECK_SETTINGS = 0x1;
+    protected static final int REQUEST_CHECK_SETTINGS = 100;
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
     public static final String TAG = MapsActivity.class.getSimpleName();
 
@@ -64,20 +65,47 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // show explanation
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)) {
                 // todo: show reason why to user why we need to access data
+                Toast.makeText(this, "This app needs to access your general location to find your current ward!", Toast.LENGTH_SHORT).show();
             }
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.ACCESS_FINE_LOCATION)) {
                 // todo: show reason why to user why we need to access data
+                Toast.makeText(this, "This app needs to access your detailed location to find your current ward!", Toast.LENGTH_SHORT).show();
             }
-        }
-        Log.i(TAG, "Location Services connected!");
-        location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        if (location == null) {
-            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
         } else {
-            handleLocationChange(location);
+            ActivityCompat.requestPermissions(this, new String[]{
+                            android.Manifest.permission.ACCESS_FINE_LOCATION,
+                            android.Manifest.permission.ACCESS_FINE_LOCATION},
+                    REQUEST_CHECK_SETTINGS);
         }
+
     }
 
+    // result for permission request made in onConnect()
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permisisons[], int[] grantResults) throws SecurityException {
+        switch (requestCode) {
+            case REQUEST_CHECK_SETTINGS: {
+                // if request is cancelled the results array is empty
+                // check for both results (course/fine location)
+                if (grantResults.length > 0 &&
+                        grantResults[0] == PackageManager.PERMISSION_GRANTED &&
+                        grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                    // now we can check locs
+                    Log.i(TAG, "Location Services connected!");
+                    location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+                    if (location == null) {
+                        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+                    } else {
+                        handleLocationChange(location);
+                    }
+                } else {
+                    // permission denied
+                    Toast.makeText(this, "You did not allow this app permission to check location. We cannot find your ward. Sorry.", Toast.LENGTH_LONG).show();
+                }
+                return;
+            }
+        }
+    }
 
     // what to do is our location changes
     private void handleLocationChange(Location location) {
@@ -141,16 +169,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         handleLocationChange(location);
     }
 
-
-
-
     protected void createLocationRequest() {
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(10000);       // milliseconds
         mLocationRequest.setFastestInterval(5000); // milliseconds
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY); // IMPORTANT
     }
-
 
     protected void onStart() {
         mGoogleApiClient.connect();
@@ -238,15 +262,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //        locationManager.requestLocationUpdates(bestProvider, 5000, 0, locationListener);
 //    }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
+
+    // Manipulates the map once available.
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
