@@ -1,6 +1,7 @@
 package org.chiwardlocator.codeforcoffee.chicagowardlocator;
 
 import android.content.Context;
+import android.content.IntentSender;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -11,9 +12,13 @@ import android.location.Location;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResult;
+import com.google.android.gms.location.LocationSettingsStates;
+import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -40,6 +45,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     final Double CHICAGO_LAT = 41.8500300;
     final Double CHICAGO_LONG = -87.6500500;
 
+    protected static final int REQUEST_CHECK_SETTINGS = 0x1;
+
     public void onConnected(Bundle connectionHint) throws SecurityException {
         location = LocationServices.FusedLocationApi.getLastLocation(
                 mGoogleApiClient);
@@ -52,9 +59,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     protected void startLocationUpdates() {
-
         // Define a listener that responds to location updates
-        //LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, nll);
+        //LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, locationListener);
     }
 
     private void updateLatLong(Double lat, Double lon) {
@@ -124,6 +130,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         PendingResult<LocationSettingsResult> result =
                 LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient,
                         builder.build());
+
+        result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
+            @Override
+            public void onResult(LocationSettingsResult res) {
+                final Status STATUS = res.getStatus();
+                //final LocationSettingsStates LOCATION_SETTING_STATES = res.getLocationSettingsStates();
+                switch (STATUS.getStatusCode()) {
+                    case LocationSettingsStatusCodes.SUCCESS:
+                        // all is well... we can make requests here
+                        break;
+                    case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
+                        // Location settings are not satisfied, but this can be fixed
+                        // by showing the user a dialog.
+                        try {
+                            // Show the dialog by calling startResolutionForResult(),
+                            // and check the result in onActivityResult().
+                            STATUS.startResolutionForResult(
+                                    MapsActivity.this,
+                                    REQUEST_CHECK_SETTINGS);
+                        } catch (IntentSender.SendIntentException e) {
+                            // Ignore the error.
+                        }
+                        break;
+                    case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+                        // settings unavailable and cannot be changed :(
+                        break;
+                }
+            }
+        });
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
