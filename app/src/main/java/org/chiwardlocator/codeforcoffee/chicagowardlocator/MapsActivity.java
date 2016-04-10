@@ -1,6 +1,7 @@
 package org.chiwardlocator.codeforcoffee.chicagowardlocator;
 
 import android.content.Context;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -17,46 +18,70 @@ import com.google.android.gms.maps.model.MarkerOptions;
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
+    private Location location;
     protected LocationManager locationManager;
     protected LocationListener locationListener;
     protected Context context;
-    protected String latitude, longitude;
+    protected Double latitude, longitude;
 
+    private void updateLatLong(Double lat, Double lon) {
+        this.latitude = lat;
+        this.longitude = lon;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
         // Acquire a reference to the system Location Manager
-        LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
         // Define a listener that responds to location updates
-        LocationListener locationListener = new LocationListener() {
+        locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
-                // Called when a new location is found by the network location provider.
-                // makeUseOfNewLocation(location);
+                Double lat = location.getLatitude(),
+                       lon = location.getLongitude();
+                updateLatLong(lon, lat);
+                updateMapMarkerAndLocation();
             }
-
             public void onStatusChanged(String provider, int status, Bundle extras) {}
-
             public void onProviderEnabled(String provider) {}
-
             public void onProviderDisabled(String provider) {}
         };
 
-        // Register the listener with the Location Manager to receive location updates
-        try {
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
-        } catch (SecurityException securityExc) {
-            // let user know there is an error
-            // log it
-        }
+    }
 
+    private void updateMapMarkerAndLocation() {
+        LatLng currentLocation = new LatLng(this.longitude,this.latitude);
+        mMap.addMarker(new MarkerOptions().position(currentLocation).title("Your location"));
+        mMap.moveCamera(CameraUpdateFactory.zoomTo(15));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLocation));
+    }
+
+    private void updateLocation() throws SecurityException {
+
+        Criteria criteria  = new Criteria();
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
+        criteria.setAltitudeRequired(false);
+        criteria.setBearingRequired(false);
+        criteria.setCostAllowed(true);
+        criteria.setPowerRequirement(Criteria.POWER_LOW);
+
+
+        String bestProvider = locationManager.getBestProvider(criteria, true);
+
+        //Location networkLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        location = locationManager.getLastKnownLocation(bestProvider);
+        Double lat = location.getLatitude(),
+                lon = location.getLongitude();
+        updateLatLong(lon, lat);
+        updateMapMarkerAndLocation();
     }
 
     /**
@@ -71,10 +96,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        // Register the listener with the Location Manager to receive location updates
+        try {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+            updateLocation();
+        } catch (SecurityException securityExc) {
+            // let user know there is an error & log it
+        }
 
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
     }
 }
