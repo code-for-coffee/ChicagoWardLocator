@@ -60,50 +60,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // on Connected to Location Services
     @Override
     public void onConnected(Bundle connectionHint) throws SecurityException {
-        // check permissions at runtime (required for sdk 23+
-        if (coarsePermissionCheck != PackageManager.PERMISSION_GRANTED && finePermissionCheck != PackageManager.PERMISSION_GRANTED) {
-            // show explanation
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)) {
-                // todo: show reason why to user why we need to access data
-                Toast.makeText(this, "This app needs to access your general location to find your current ward!", Toast.LENGTH_SHORT).show();
-            }
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.ACCESS_FINE_LOCATION)) {
-                // todo: show reason why to user why we need to access data
-                Toast.makeText(this, "This app needs to access your detailed location to find your current ward!", Toast.LENGTH_SHORT).show();
-            }
+        Log.i(TAG, "Location Services connected!");
+        location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        if (location == null) {
+            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
         } else {
-            ActivityCompat.requestPermissions(this, new String[]{
-                            android.Manifest.permission.ACCESS_FINE_LOCATION,
-                            android.Manifest.permission.ACCESS_FINE_LOCATION},
-                    REQUEST_CHECK_SETTINGS);
-        }
-
-    }
-
-    // result for permission request made in onConnect()
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String permisisons[], int[] grantResults) throws SecurityException {
-        switch (requestCode) {
-            case REQUEST_CHECK_SETTINGS: {
-                // if request is cancelled the results array is empty
-                // check for both results (course/fine location)
-                if (grantResults.length > 0 &&
-                        grantResults[0] == PackageManager.PERMISSION_GRANTED &&
-                        grantResults[1] == PackageManager.PERMISSION_GRANTED) {
-                    // now we can check locs
-                    Log.i(TAG, "Location Services connected!");
-                    location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-                    if (location == null) {
-                        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-                    } else {
-                        handleLocationChange(location);
-                    }
-                } else {
-                    // permission denied
-                    Toast.makeText(this, "You did not allow this app permission to check location. We cannot find your ward. Sorry.", Toast.LENGTH_LONG).show();
-                }
-                return;
-            }
+            handleLocationChange(location);
         }
     }
 
