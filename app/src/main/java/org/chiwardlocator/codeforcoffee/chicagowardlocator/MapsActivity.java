@@ -37,6 +37,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected LocationListener locationListener;
     protected Context context;
     protected Double latitude, longitude;
+    final Double CHICAGO_LAT = 41.8500300;
+    final Double CHICAGO_LONG = -87.6500500;
 
     public void onConnected(Bundle connectionHint) throws SecurityException {
         location = LocationServices.FusedLocationApi.getLastLocation(
@@ -110,8 +112,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Create an instance of GoogleAPIClient.
         if (mGoogleApiClient == null) {
             mGoogleApiClient = new GoogleApiClient.Builder(this)
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
                     .addApi(LocationServices.API)
                     .build();
         }
@@ -163,10 +163,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         mMap.moveCamera(CameraUpdateFactory.zoomTo(15));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(CHICAGO_LAT, CHICAGO_LONG)));
     }
 
-    @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-
-    }
 }
