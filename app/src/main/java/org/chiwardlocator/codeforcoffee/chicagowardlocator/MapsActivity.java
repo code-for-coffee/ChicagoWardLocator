@@ -9,6 +9,7 @@ import android.location.LocationManager;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.location.Location;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -44,18 +45,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     final Double CHICAGO_LAT = 41.8500300;
     final Double CHICAGO_LONG = -87.6500500;
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+
     // sdk 23+ permissions (support for Android 6.0+ request
     int coarsePermissionCheck = ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION);
     int finePermissionCheck = ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION);
 
     protected static final int REQUEST_CHECK_SETTINGS = 100;
-=======
-=======
->>>>>>> parent of d418992... adding api 23(marshmallow) permissions checks @ runtime
-    protected static final int REQUEST_CHECK_SETTINGS = 0x1;
->>>>>>> parent of d418992... adding api 23(marshmallow) permissions checks @ runtime
+
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
     public static final String TAG = MapsActivity.class.getSimpleName();
 
@@ -125,17 +121,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         this.longitude = lon;
     }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-    @Override
-    public void onLocationChanged(Location location) {
-        handleLocationChange(location);
-    }
+//    @Override
+//    public void onLocationChanged(Location location) {
+//        handleLocationChange(location);
+//    }
 
-=======
->>>>>>> parent of d418992... adding api 23(marshmallow) permissions checks @ runtime
-=======
->>>>>>> parent of d418992... adding api 23(marshmallow) permissions checks @ runtime
+
     protected void createLocationRequest() {
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(10000);
