@@ -42,6 +42,10 @@ public class BoundairesApiResource {
         return output;
     }
 
+    public Map<String, String> getLocationsHash() {
+        return this.Locations;
+    }
+
     public JSONArray Locations(String lat, String lon) throws IOException, JSONException {
         OkHttpClient http = new OkHttpClient();
         URL apiLocation = new URL(LOCATIONS_URI + "/?contains=" + lat + "," + lon + "&sets=wards");
