@@ -2,16 +2,13 @@ package org.chiwardlocator.codeforcoffee.chicagowardlocator;
 
 import android.content.Context;
 import android.content.IntentSender;
-import android.content.pm.PackageManager;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.location.Location;
-import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -37,9 +34,7 @@ import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListe
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
-import java.util.jar.Manifest;
-
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private GoogleMap mMap;                     // google map object
     private Location location;                  // location object
@@ -49,22 +44,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     final Double CHICAGO_LAT = 41.8500300;
     final Double CHICAGO_LONG = -87.6500500;
 
+<<<<<<< HEAD
     // sdk 23+ permissions (support for Android 6.0+ request
     int coarsePermissionCheck = ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION);
     int finePermissionCheck = ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION);
 
     protected static final int REQUEST_CHECK_SETTINGS = 100;
+=======
+    protected static final int REQUEST_CHECK_SETTINGS = 0x1;
+>>>>>>> parent of d418992... adding api 23(marshmallow) permissions checks @ runtime
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
     public static final String TAG = MapsActivity.class.getSimpleName();
 
     // on Connected to Location Services
-    @Override
     public void onConnected(Bundle connectionHint) throws SecurityException {
         Log.i(TAG, "Location Services connected!");
-        location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        if (location == null) {
-            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-        } else {
+        location = LocationServices.FusedLocationApi.getLastLocation(
+                mGoogleApiClient);
+        if (location != null) {
             handleLocationChange(location);
         }
     }
@@ -90,7 +87,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onPause(){
         super.onPause();
         if (mGoogleApiClient.isConnected()) {
-            LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
             mGoogleApiClient.disconnect(); // save dat memory
         }
     }
@@ -126,16 +122,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         this.longitude = lon;
     }
 
+<<<<<<< HEAD
     @Override
     public void onLocationChanged(Location location) {
         handleLocationChange(location);
     }
 
+=======
+>>>>>>> parent of d418992... adding api 23(marshmallow) permissions checks @ runtime
     protected void createLocationRequest() {
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(10000);       // milliseconds
-        mLocationRequest.setFastestInterval(5000); // milliseconds
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY); // IMPORTANT
+        mLocationRequest.setInterval(10000);
+        mLocationRequest.setFastestInterval(5000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
     protected void onStart() {
